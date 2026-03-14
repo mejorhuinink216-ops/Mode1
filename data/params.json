@@ -1,0 +1,7 @@
+{
+  "birth_rate_per_adult_female": 0.12,
+  "child_death_rate": 0.02,
+  "adult_death_rate": 0.01,
+  "elder_death_rate": 0.05,
+  "male_birth_share": 0.512
+}
