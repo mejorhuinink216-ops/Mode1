@@ -21,14 +21,22 @@ from metrics import (
 from simulation import step
 
 
+def load_json(path: Path) -> dict:
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
 def load_state() -> VillageState:
     root_dir = Path(__file__).resolve().parent.parent
     data_path = root_dir / "data" / "initial_state.json"
-
-    with open(data_path, "r", encoding="utf-8") as f:
-        data = json.load(f)
-
+    data = load_json(data_path)
     return VillageState(**data)
+
+
+def load_params() -> dict:
+    root_dir = Path(__file__).resolve().parent.parent
+    params_path = root_dir / "data" / "params.json"
+    return load_json(params_path)
 
 
 def validate_state(s: VillageState) -> None:
@@ -52,6 +60,33 @@ def validate_state(s: VillageState) -> None:
 
     if not 0 <= s.female_labor_participation <= 1:
         raise ValueError("female_labor_participation 必须在 0 到 1 之间")
+
+
+def validate_params(params: dict) -> None:
+    required_keys = [
+        "birth_rate_per_adult_female",
+        "child_death_rate",
+        "adult_death_rate",
+        "elder_death_rate",
+        "male_birth_share",
+    ]
+
+    for key in required_keys:
+        if key not in params:
+            raise ValueError(f"缺少参数: {key}")
+
+    rate_keys = [
+        "birth_rate_per_adult_female",
+        "child_death_rate",
+        "adult_death_rate",
+        "elder_death_rate",
+        "male_birth_share",
+    ]
+
+    for key in rate_keys:
+        value = params[key]
+        if not 0 <= value <= 1:
+            raise ValueError(f"{key} 必须在 0 到 1 之间")
 
 
 def print_report(title: str, s: VillageState) -> None:
@@ -78,9 +113,12 @@ def print_report(title: str, s: VillageState) -> None:
 
 def main():
     state = load_state()
-    validate_state(state)
+    params = load_params()
 
-    next_state = step(state)
+    validate_state(state)
+    validate_params(params)
+
+    next_state = step(state, params)
     validate_state(next_state)
 
     print_report("current_state", state)
