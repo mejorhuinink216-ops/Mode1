@@ -3,5 +3,11 @@
   "child_death_rate": 0.02,
   "adult_death_rate": 0.01,
   "elder_death_rate": 0.05,
-  "male_birth_share": 0.512
+  "male_birth_share": 0.512,
+
+  "grain_need_per_person": 3.0,
+  "famine_birth_scaler": 1.0,
+  "famine_child_death_multiplier": 2.0,
+  "famine_adult_death_multiplier": 1.2,
+  "famine_elder_death_multiplier": 2.5
 }
