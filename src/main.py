@@ -79,6 +79,10 @@ def validate_params(params: dict) -> None:
         "labor_surplus_sensitivity",
         "min_yield_factor",
         "max_yield_factor",
+        "reclaim_base_rate",
+        "abandon_base_rate",
+        "reclaim_food_pressure_sensitivity",
+        "abandon_food_surplus_sensitivity",
     ]
 
     for key in required_keys:
@@ -93,6 +97,8 @@ def validate_params(params: dict) -> None:
         "male_birth_share",
         "min_yield_factor",
         "max_yield_factor",
+        "reclaim_base_rate",
+        "abandon_base_rate",
     ]
 
     for key in zero_one_keys:
@@ -113,6 +119,8 @@ def validate_params(params: dict) -> None:
         "famine_elder_death_multiplier",
         "labor_shortage_sensitivity",
         "labor_surplus_sensitivity",
+        "reclaim_food_pressure_sensitivity",
+        "abandon_food_surplus_sensitivity",
     ]
 
     for key in non_negative_keys:
@@ -130,10 +138,15 @@ def print_report(title: str, s: VillageState, params: dict) -> None:
     food_ratio = output / food_need if food_need > 0 else 1.0
     labor_density = labor_total(s) / s.farmland_mu if s.farmland_mu > 0 else 0.0
     yield_factor = compute_yield_factor(labor_density, params)
+    land_pressure_ratio = (
+        labor_density / params["optimal_labor_density"]
+        if params["optimal_labor_density"] > 0
+        else 1.0
+    )
 
     print("====", title, "====")
     print("year:", s.year)
-    print("farmland_mu:", s.farmland_mu)
+    print("farmland_mu:", round(s.farmland_mu, 4))
     print("yield_per_mu:", round(s.yield_per_mu, 4))
     print("population_total:", population_total(s))
     print("male_total:", male_total(s))
@@ -145,6 +158,7 @@ def print_report(title: str, s: VillageState, params: dict) -> None:
     print("labor_female:", round(labor_female(s), 2))
     print("labor_total:", round(labor_total(s), 2))
     print("labor_density:", round(labor_density, 4))
+    print("land_pressure_ratio:", round(land_pressure_ratio, 4))
     print("yield_factor_from_labor:", round(yield_factor, 4))
     print("total_output:", round(output, 2))
     print("food_need:", round(food_need, 2))
