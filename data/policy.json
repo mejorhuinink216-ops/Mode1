@@ -1,0 +1,10 @@
+{
+  "tax_rate": 0.15,
+
+  "corvee_rate": 0.08,
+  "corvee_time_share": 0.10,
+  "corvee_wage_per_worker": 0.20,
+  "corvee_willingness_base": 0.70,
+  "corvee_wage_sensitivity": 0.50,
+  "corvee_efficiency": 0.75
+}
