@@ -69,13 +69,18 @@ def validate_params(params: dict) -> None:
         "adult_death_rate",
         "elder_death_rate",
         "male_birth_share",
+        "grain_need_per_person",
+        "famine_birth_scaler",
+        "famine_child_death_multiplier",
+        "famine_adult_death_multiplier",
+        "famine_elder_death_multiplier",
     ]
 
     for key in required_keys:
         if key not in params:
             raise ValueError(f"缺少参数: {key}")
 
-    rate_keys = [
+    zero_one_keys = [
         "birth_rate_per_adult_female",
         "child_death_rate",
         "adult_death_rate",
@@ -83,13 +88,32 @@ def validate_params(params: dict) -> None:
         "male_birth_share",
     ]
 
-    for key in rate_keys:
+    for key in zero_one_keys:
         value = params[key]
         if not 0 <= value <= 1:
             raise ValueError(f"{key} 必须在 0 到 1 之间")
 
+    if params["grain_need_per_person"] <= 0:
+        raise ValueError("grain_need_per_person 必须大于 0")
 
-def print_report(title: str, s: VillageState) -> None:
+    non_negative_keys = [
+        "famine_birth_scaler",
+        "famine_child_death_multiplier",
+        "famine_adult_death_multiplier",
+        "famine_elder_death_multiplier",
+    ]
+
+    for key in non_negative_keys:
+        if params[key] < 0:
+            raise ValueError(f"{key} 不能小于 0")
+
+
+def print_report(title: str, s: VillageState, params: dict) -> None:
+    output = total_output(s)
+    food_need = population_total(s) * params["grain_need_per_person"]
+    food_balance = output - food_need
+    food_ratio = output / food_need if food_need > 0 else 1.0
+
     print("====", title, "====")
     print("year:", s.year)
     print("farmland_mu:", s.farmland_mu)
@@ -103,7 +127,10 @@ def print_report(title: str, s: VillageState) -> None:
     print("labor_male:", round(labor_male(s), 2))
     print("labor_female:", round(labor_female(s), 2))
     print("labor_total:", round(labor_total(s), 2))
-    print("total_output:", round(total_output(s), 2))
+    print("total_output:", round(output, 2))
+    print("food_need:", round(food_need, 2))
+    print("food_balance:", round(food_balance, 2))
+    print("food_ratio:", round(food_ratio, 4))
     print("child_ratio:", round(child_ratio(s), 4))
     print("elder_ratio:", round(elder_ratio(s), 4))
     print("labor_ratio:", round(labor_ratio(s), 4))
@@ -121,8 +148,8 @@ def main():
     next_state = step(state, params)
     validate_state(next_state)
 
-    print_report("current_state", state)
-    print_report("next_state", next_state)
+    print_report("current_state", state, params)
+    print_report("next_state", next_state, params)
 
 
 if __name__ == "__main__":
