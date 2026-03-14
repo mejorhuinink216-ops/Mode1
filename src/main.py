@@ -18,7 +18,7 @@ from metrics import (
     labor_ratio,
     dependency_ratio,
 )
-from simulation import step
+from simulation import step, compute_yield_factor
 
 
 def load_json(path: Path) -> dict:
@@ -74,6 +74,11 @@ def validate_params(params: dict) -> None:
         "famine_child_death_multiplier",
         "famine_adult_death_multiplier",
         "famine_elder_death_multiplier",
+        "optimal_labor_density",
+        "labor_shortage_sensitivity",
+        "labor_surplus_sensitivity",
+        "min_yield_factor",
+        "max_yield_factor",
     ]
 
     for key in required_keys:
@@ -86,6 +91,8 @@ def validate_params(params: dict) -> None:
         "adult_death_rate",
         "elder_death_rate",
         "male_birth_share",
+        "min_yield_factor",
+        "max_yield_factor",
     ]
 
     for key in zero_one_keys:
@@ -96,16 +103,24 @@ def validate_params(params: dict) -> None:
     if params["grain_need_per_person"] <= 0:
         raise ValueError("grain_need_per_person 必须大于 0")
 
+    if params["optimal_labor_density"] <= 0:
+        raise ValueError("optimal_labor_density 必须大于 0")
+
     non_negative_keys = [
         "famine_birth_scaler",
         "famine_child_death_multiplier",
         "famine_adult_death_multiplier",
         "famine_elder_death_multiplier",
+        "labor_shortage_sensitivity",
+        "labor_surplus_sensitivity",
     ]
 
     for key in non_negative_keys:
         if params[key] < 0:
             raise ValueError(f"{key} 不能小于 0")
+
+    if params["min_yield_factor"] > params["max_yield_factor"]:
+        raise ValueError("min_yield_factor 不能大于 max_yield_factor")
 
 
 def print_report(title: str, s: VillageState, params: dict) -> None:
@@ -113,11 +128,13 @@ def print_report(title: str, s: VillageState, params: dict) -> None:
     food_need = population_total(s) * params["grain_need_per_person"]
     food_balance = output - food_need
     food_ratio = output / food_need if food_need > 0 else 1.0
+    labor_density = labor_total(s) / s.farmland_mu if s.farmland_mu > 0 else 0.0
+    yield_factor = compute_yield_factor(labor_density, params)
 
     print("====", title, "====")
     print("year:", s.year)
     print("farmland_mu:", s.farmland_mu)
-    print("yield_per_mu:", s.yield_per_mu)
+    print("yield_per_mu:", round(s.yield_per_mu, 4))
     print("population_total:", population_total(s))
     print("male_total:", male_total(s))
     print("female_total:", female_total(s))
@@ -127,6 +144,8 @@ def print_report(title: str, s: VillageState, params: dict) -> None:
     print("labor_male:", round(labor_male(s), 2))
     print("labor_female:", round(labor_female(s), 2))
     print("labor_total:", round(labor_total(s), 2))
+    print("labor_density:", round(labor_density, 4))
+    print("yield_factor_from_labor:", round(yield_factor, 4))
     print("total_output:", round(output, 2))
     print("food_need:", round(food_need, 2))
     print("food_balance:", round(food_balance, 2))
