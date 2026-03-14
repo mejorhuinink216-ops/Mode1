@@ -95,8 +95,6 @@ def validate_params(params: dict) -> None:
         "adult_death_rate",
         "elder_death_rate",
         "male_birth_share",
-        "min_yield_factor",
-        "max_yield_factor",
         "reclaim_base_rate",
         "abandon_base_rate",
     ]
@@ -111,6 +109,12 @@ def validate_params(params: dict) -> None:
 
     if params["optimal_labor_density"] <= 0:
         raise ValueError("optimal_labor_density 必须大于 0")
+
+    if params["min_yield_factor"] <= 0:
+        raise ValueError("min_yield_factor 必须大于 0")
+
+    if params["max_yield_factor"] <= 0:
+        raise ValueError("max_yield_factor 必须大于 0")
 
     non_negative_keys = [
         "famine_birth_scaler",
