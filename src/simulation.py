@@ -1,16 +1,15 @@
 from state import VillageState
 
 
-BIRTH_RATE_PER_ADULT_FEMALE = 0.12
-CHILD_DEATH_RATE = 0.02
-ADULT_DEATH_RATE = 0.01
-ELDER_DEATH_RATE = 0.05
-MALE_BIRTH_SHARE = 0.512
+def step(state: VillageState, params: dict) -> VillageState:
+    birth_rate = params["birth_rate_per_adult_female"]
+    child_death_rate = params["child_death_rate"]
+    adult_death_rate = params["adult_death_rate"]
+    elder_death_rate = params["elder_death_rate"]
+    male_birth_share = params["male_birth_share"]
 
-
-def step(state: VillageState) -> VillageState:
-    births_total = round(state.adult_female * BIRTH_RATE_PER_ADULT_FEMALE)
-    births_male = round(births_total * MALE_BIRTH_SHARE)
+    births_total = round(state.adult_female * birth_rate)
+    births_male = round(births_total * male_birth_share)
     births_female = births_total - births_male
 
     children_to_adult_male = state.children_male // 15
@@ -28,14 +27,14 @@ def step(state: VillageState) -> VillageState:
     next_elder_male = state.elder_male + adult_to_elder_male
     next_elder_female = state.elder_female + adult_to_elder_female
 
-    child_deaths_male = round(next_children_male * CHILD_DEATH_RATE)
-    child_deaths_female = round(next_children_female * CHILD_DEATH_RATE)
+    child_deaths_male = round(next_children_male * child_death_rate)
+    child_deaths_female = round(next_children_female * child_death_rate)
 
-    adult_deaths_male = round(next_adult_male * ADULT_DEATH_RATE)
-    adult_deaths_female = round(next_adult_female * ADULT_DEATH_RATE)
+    adult_deaths_male = round(next_adult_male * adult_death_rate)
+    adult_deaths_female = round(next_adult_female * adult_death_rate)
 
-    elder_deaths_male = round(next_elder_male * ELDER_DEATH_RATE)
-    elder_deaths_female = round(next_elder_female * ELDER_DEATH_RATE)
+    elder_deaths_male = round(next_elder_male * elder_death_rate)
+    elder_deaths_female = round(next_elder_female * elder_death_rate)
 
     next_state = VillageState(
         year=state.year + 1,
