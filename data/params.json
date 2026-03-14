@@ -9,5 +9,11 @@
   "famine_birth_scaler": 1.0,
   "famine_child_death_multiplier": 2.0,
   "famine_adult_death_multiplier": 1.2,
-  "famine_elder_death_multiplier": 2.5
+  "famine_elder_death_multiplier": 2.5,
+
+  "optimal_labor_density": 0.23,
+  "labor_shortage_sensitivity": 0.4,
+  "labor_surplus_sensitivity": 0.2,
+  "min_yield_factor": 0.7,
+  "max_yield_factor": 1.05
 }
