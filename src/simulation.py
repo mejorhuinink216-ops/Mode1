@@ -26,6 +26,47 @@ def compute_yield_factor(labor_density: float, params: dict) -> float:
     return clamp(factor, min_yield_factor, max_yield_factor)
 
 
+def compute_farmland_change(
+    farmland_mu: float,
+    labor_density: float,
+    shortage: float,
+    surplus: float,
+    params: dict,
+) -> tuple[float, float, float]:
+    optimal_labor_density = params["optimal_labor_density"]
+    reclaim_base_rate = params["reclaim_base_rate"]
+    abandon_base_rate = params["abandon_base_rate"]
+    reclaim_food_pressure_sensitivity = params["reclaim_food_pressure_sensitivity"]
+    abandon_food_surplus_sensitivity = params["abandon_food_surplus_sensitivity"]
+
+    if farmland_mu <= 0 or optimal_labor_density <= 0:
+        return 0.0, 0.0, max(0.0, farmland_mu)
+
+    pressure_ratio = labor_density / optimal_labor_density
+
+    reclaim_ratio = 0.0
+    abandon_ratio = 0.0
+
+    if pressure_ratio > 1.0:
+        reclaim_ratio = (
+            reclaim_base_rate
+            * (pressure_ratio - 1.0)
+            * (1.0 + shortage * reclaim_food_pressure_sensitivity)
+        )
+    elif pressure_ratio < 1.0:
+        abandon_ratio = (
+            abandon_base_rate
+            * (1.0 - pressure_ratio)
+            * (1.0 + surplus * abandon_food_surplus_sensitivity)
+        )
+
+    reclaim_mu = farmland_mu * reclaim_ratio
+    abandon_mu = farmland_mu * abandon_ratio
+    next_farmland_mu = max(0.0, farmland_mu + reclaim_mu - abandon_mu)
+
+    return reclaim_mu, abandon_mu, next_farmland_mu
+
+
 def step(state: VillageState, params: dict) -> VillageState:
     birth_rate = params["birth_rate_per_adult_female"]
     child_death_rate = params["child_death_rate"]
@@ -49,6 +90,7 @@ def step(state: VillageState, params: dict) -> VillageState:
         food_ratio = current_output / current_food_need
 
     shortage = max(0.0, 1.0 - food_ratio)
+    surplus = max(0.0, food_ratio - 1.0)
 
     effective_birth_rate = birth_rate * max(0.0, 1.0 - shortage * famine_birth_scaler)
 
@@ -129,17 +171,30 @@ def step(state: VillageState, params: dict) -> VillageState:
         female_labor_participation=state.female_labor_participation,
     )
 
-    if temp_next_state.farmland_mu <= 0:
+    if state.farmland_mu <= 0:
+        next_labor_density_on_current_land = 0.0
+    else:
+        next_labor_density_on_current_land = labor_total(temp_next_state) / state.farmland_mu
+
+    reclaim_mu, abandon_mu, next_farmland_mu = compute_farmland_change(
+        state.farmland_mu,
+        next_labor_density_on_current_land,
+        shortage,
+        surplus,
+        params,
+    )
+
+    if next_farmland_mu <= 0:
         next_labor_density = 0.0
     else:
-        next_labor_density = labor_total(temp_next_state) / temp_next_state.farmland_mu
+        next_labor_density = labor_total(temp_next_state) / next_farmland_mu
 
     yield_factor = compute_yield_factor(next_labor_density, params)
     next_yield_per_mu = max(0.0, state.yield_per_mu * yield_factor)
 
     next_state = VillageState(
         year=temp_next_state.year,
-        farmland_mu=temp_next_state.farmland_mu,
+        farmland_mu=next_farmland_mu,
         yield_per_mu=next_yield_per_mu,
 
         children_male=temp_next_state.children_male,
