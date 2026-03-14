@@ -18,6 +18,7 @@ from metrics import (
     labor_ratio,
     dependency_ratio,
 )
+from simulation import step
 
 
 def load_state() -> VillageState:
@@ -53,7 +54,8 @@ def validate_state(s: VillageState) -> None:
         raise ValueError("female_labor_participation 必须在 0 到 1 之间")
 
 
-def print_report(s: VillageState) -> None:
+def print_report(title: str, s: VillageState) -> None:
+    print("====", title, "====")
     print("year:", s.year)
     print("farmland_mu:", s.farmland_mu)
     print("yield_per_mu:", s.yield_per_mu)
@@ -71,12 +73,18 @@ def print_report(s: VillageState) -> None:
     print("elder_ratio:", round(elder_ratio(s), 4))
     print("labor_ratio:", round(labor_ratio(s), 4))
     print("dependency_ratio:", round(dependency_ratio(s), 4))
+    print()
 
 
 def main():
     state = load_state()
     validate_state(state)
-    print_report(state)
+
+    next_state = step(state)
+    validate_state(next_state)
+
+    print_report("current_state", state)
+    print_report("next_state", next_state)
 
 
 if __name__ == "__main__":
