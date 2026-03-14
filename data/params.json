@@ -15,5 +15,10 @@
   "labor_shortage_sensitivity": 0.4,
   "labor_surplus_sensitivity": 0.2,
   "min_yield_factor": 0.7,
-  "max_yield_factor": 1.05
+  "max_yield_factor": 1.05,
+
+  "reclaim_base_rate": 0.02,
+  "abandon_base_rate": 0.015,
+  "reclaim_food_pressure_sensitivity": 1.0,
+  "abandon_food_surplus_sensitivity": 0.5
 }
