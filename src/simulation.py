@@ -26,6 +26,59 @@ def compute_yield_factor(labor_density: float, params: dict) -> float:
     return clamp(factor, min_yield_factor, max_yield_factor)
 
 
+def compute_policy_effects(state: VillageState, params: dict, policy: dict) -> dict:
+    gross_output = total_output(state)
+    raw_labor_total = labor_total(state)
+
+    tax_rate = policy["tax_rate"]
+    corvee_rate = policy["corvee_rate"]
+    corvee_time_share = policy["corvee_time_share"]
+    corvee_wage_per_worker = policy["corvee_wage_per_worker"]
+    corvee_willingness_base = policy["corvee_willingness_base"]
+    corvee_wage_sensitivity = policy["corvee_wage_sensitivity"]
+    corvee_efficiency = policy["corvee_efficiency"]
+
+    tax_grain = gross_output * tax_rate
+
+    corvee_target_labor = raw_labor_total * corvee_rate
+
+    subsistence_need = params["grain_need_per_person"] * corvee_time_share
+    if subsistence_need <= 0:
+        wage_adequacy = 1.0
+    else:
+        wage_adequacy = corvee_wage_per_worker / subsistence_need
+
+    corvee_participation = clamp(
+        corvee_willingness_base
+        + corvee_wage_sensitivity * (wage_adequacy - 1.0),
+        0.0,
+        1.0,
+    )
+
+    actual_corvee_labor = corvee_target_labor * corvee_participation
+    corvee_agri_labor_loss = actual_corvee_labor * corvee_time_share
+    corvee_wage_grain = actual_corvee_labor * corvee_wage_per_worker
+    corvee_effective_service = actual_corvee_labor * corvee_time_share * corvee_efficiency
+
+    effective_agri_labor = max(0.0, raw_labor_total - corvee_agri_labor_loss)
+    available_grain = max(0.0, gross_output - tax_grain + corvee_wage_grain)
+
+    return {
+        "gross_output": gross_output,
+        "tax_grain": tax_grain,
+        "raw_labor_total": raw_labor_total,
+        "corvee_target_labor": corvee_target_labor,
+        "wage_adequacy": wage_adequacy,
+        "corvee_participation": corvee_participation,
+        "actual_corvee_labor": actual_corvee_labor,
+        "corvee_agri_labor_loss": corvee_agri_labor_loss,
+        "corvee_wage_grain": corvee_wage_grain,
+        "corvee_effective_service": corvee_effective_service,
+        "effective_agri_labor": effective_agri_labor,
+        "available_grain": available_grain,
+    }
+
+
 def compute_farmland_change(
     farmland_mu: float,
     labor_density: float,
@@ -67,27 +120,27 @@ def compute_farmland_change(
     return reclaim_mu, abandon_mu, next_farmland_mu
 
 
-def step(state: VillageState, params: dict) -> VillageState:
+def step(state: VillageState, params: dict, policy: dict) -> VillageState:
     birth_rate = params["birth_rate_per_adult_female"]
     child_death_rate = params["child_death_rate"]
     adult_death_rate = params["adult_death_rate"]
     elder_death_rate = params["elder_death_rate"]
     male_birth_share = params["male_birth_share"]
 
-    grain_need_per_person = params["grain_need_per_person"]
     famine_birth_scaler = params["famine_birth_scaler"]
     famine_child_death_multiplier = params["famine_child_death_multiplier"]
     famine_adult_death_multiplier = params["famine_adult_death_multiplier"]
     famine_elder_death_multiplier = params["famine_elder_death_multiplier"]
 
     current_population = population_total(state)
-    current_output = total_output(state)
-    current_food_need = current_population * grain_need_per_person
+    current_policy_effects = compute_policy_effects(state, params, policy)
+    current_available_grain = current_policy_effects["available_grain"]
+    current_food_need = current_population * params["grain_need_per_person"]
 
     if current_food_need <= 0:
         food_ratio = 1.0
     else:
-        food_ratio = current_output / current_food_need
+        food_ratio = current_available_grain / current_food_need
 
     shortage = max(0.0, 1.0 - food_ratio)
     surplus = max(0.0, food_ratio - 1.0)
@@ -171,25 +224,31 @@ def step(state: VillageState, params: dict) -> VillageState:
         female_labor_participation=state.female_labor_participation,
     )
 
+    next_policy_effects_on_current_land = compute_policy_effects(temp_next_state, params, policy)
+
     if state.farmland_mu <= 0:
-        next_labor_density_on_current_land = 0.0
+        next_effective_labor_density_on_current_land = 0.0
     else:
-        next_labor_density_on_current_land = labor_total(temp_next_state) / state.farmland_mu
+        next_effective_labor_density_on_current_land = (
+            next_policy_effects_on_current_land["effective_agri_labor"] / state.farmland_mu
+        )
 
     reclaim_mu, abandon_mu, next_farmland_mu = compute_farmland_change(
         state.farmland_mu,
-        next_labor_density_on_current_land,
+        next_effective_labor_density_on_current_land,
         shortage,
         surplus,
         params,
     )
 
     if next_farmland_mu <= 0:
-        next_labor_density = 0.0
+        next_effective_labor_density = 0.0
     else:
-        next_labor_density = labor_total(temp_next_state) / next_farmland_mu
+        next_effective_labor_density = (
+            next_policy_effects_on_current_land["effective_agri_labor"] / next_farmland_mu
+        )
 
-    yield_factor = compute_yield_factor(next_labor_density, params)
+    yield_factor = compute_yield_factor(next_effective_labor_density, params)
     next_yield_per_mu = max(0.0, state.yield_per_mu * yield_factor)
 
     next_state = VillageState(
