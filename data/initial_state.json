@@ -1,0 +1,13 @@
+{
+  "year": 1200,
+  "farmland_mu": 1000,
+  "yield_per_mu": 1.8,
+  "children_male": 120,
+  "children_female": 110,
+  "adult_male": 140,
+  "adult_female": 150,
+  "elder_male": 35,
+  "elder_female": 40,
+  "male_labor_participation": 0.92,
+  "female_labor_participation": 0.68
+}
